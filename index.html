@@ -1,4 +1,3 @@
-<!-- http://jamesknelson.com/learn-raw-react-no-jsx-flux-es6-webpack/ -->
 <!DOCTYPE html>
 <html>
 
@@ -6,7 +5,72 @@
   <meta charset="UTF-8" />
   <title>I'm in a React app!</title>
 
+  <style>
+    #react-app{
+      width: 300px;
+      padding: 5px;
+      margin: auto;
+      margin-top: 20px;
+      border: solid 1px black;
+      border-radius: 2%;
+      box-shadow: 5px 8px #888;
+    }
+    .contactView-title {
+      font-size: 24px;
+      padding: 0 24px;
+    }
 
+    .contactView-list {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+      border-top: 1px solid #f0f0f0;
+    }
+
+    .contactItem {
+      margin: 0;
+      padding: 8px 24px;
+      border-bottom: 1px solid #f0f0f0;
+    }
+
+    .contactItem-name {
+      font-size: 16px;
+      font-weight: bold;
+      margin: 0;
+    }
+
+    .contactItem-email {
+      font-size: 14px;
+      margin-top: 4px;
+      font-style: italic;
+      color: #888;
+    }
+
+    .contactItem-description {
+      font-size: 14px;
+      margin-top: 4px;
+    }
+
+
+    .contactForm {
+      padding: 8px 24px;
+    }
+
+    .contactForm>input,
+    .contactForm>textarea {
+      display: block;
+      width: 240px;
+      padding: 4px 8px;
+      margin-bottom: 8px;
+      border-radius: 3px;
+      border: 1px solid #888;
+      font-size: 14px;
+    }
+
+    .contactForm>input.form-error {
+      border-color: #b30e2f;
+    }
+  </style>
 </head>
 
 <body>
@@ -17,23 +81,42 @@
 
 
   <script>
-
-    function onContactChange(update) {
+    //actions
+    function onNewContactChange(update) {
       setState({
         newContact: update
       })
     }
+    function onNewContactSubmit() {
+      var contact = Object.assign({}, state.newContact, { key: state.contacts.length + 1, errors: {} })
 
+      if (!contact.name) {
+        contact.errors.name = ["Please enter your new contact's name"];
+      }
+      if (!/.+@.+\..+/.test(contact.email)) {
+        contact.errors.email = ["Please enter your new contact's email"];
+      }
+      setState(Object.keys(contact.errors).length == 0 ? {
+        contacts: [].concat(state.contacts, contact),
+        newContact: NEW_CONTACT_TEMPLATE
+      } :
+        { newContact: contact }
+      )
+
+    }
+
+
+    //state and other variables
     var state = {};
-
+    var NEW_CONTACT_TEMPLATE = { name: '', email: '', description: '', errors: null };
     var setState = function (update) {
       Object.assign(state, update);
-      var rootElement = React.createElement(ContactView, Object.assign({}, state, { onContactChange: onContactChange }));
+      var rootElement = React.createElement(ContactView, Object.assign({}, state, { onNewContactChange: onNewContactChange, onNewContactSubmit }));
       ReactDOM.render(rootElement, document.getElementById('react-app'));
     }
 
 
-
+    //Componenets
     var ContactItem = React.createClass({
       propTypes: {
         name: React.PropTypes.string.isRequired,
@@ -43,10 +126,10 @@
 
       render: function () {
         return (
-          React.createElement('li', { key: this.props.key },
-            React.createElement('h2', {}, this.props.name),
-            React.createElement('a', { href: 'mailto:' + this.props.email }, this.props.email),
-            React.createElement('div', {}, this.props.description)
+          React.createElement('li', { className: 'contactItem', key: this.props.key },
+            React.createElement('h2', {className:'contactItem-name',}, this.props.name),
+            React.createElement('a', {className:'contactItem-email', href: 'mailto:' + this.props.email }, this.props.email),
+            React.createElement('div', {className:'contactItem-desription',}, this.props.description)
           )
         )
       }
@@ -56,11 +139,18 @@
     var ContactForm = React.createClass({
       propTypes: {
         contact: React.PropTypes.object.isRequired,
-        onChange: React.PropTypes.func.isRequired
+        onChange: React.PropTypes.func.isRequired,
+        onSubmit: React.PropTypes.func.isRequired,
+      },
+
+      onSubmit: function (e) {
+        e.preventDefault();
+        this.props.onSubmit();
       },
       render: function () {
+        var errors = this.props.contact.errors || {};
         return (
-          React.createElement('form', {},
+          React.createElement('form', { className:'contactForm', onSubmit: this.onSubmit },
             React.createElement('input', {
               type: 'text',
               onChange: (syntheticEvent) => {
@@ -68,6 +158,7 @@
                 this.props.onChange(update)
               },
               placeholder: 'Name(required)',
+              className: errors.name && 'form-error',
               value: this.props.contact.name
             }),
             React.createElement('input', {
@@ -77,6 +168,7 @@
                 this.props.onChange(update)
               },
               placeholder: 'Email',
+              className: errors.email && 'form-error',
               value: this.props.contact.email
             }),
             React.createElement('textArea', {
@@ -100,7 +192,8 @@
       propTypes: {
         contacts: React.PropTypes.array.isRequired,
         newContact: React.PropTypes.object.isRequired,
-        onContactChange: React.PropTypes.func.isRequired
+        onNewContactChange: React.PropTypes.func.isRequired,
+        onNewContactSubmit: React.PropTypes.func.isRequired,
       },
 
       render: function () {
@@ -116,20 +209,21 @@
             React.createElement('h1', {}, "Contacts"),
             React.createElement('ul', {}, contactItemElements),
             React.createElement(ContactForm, {
-              contact: this.props.newContact, onChange: this.props.onContactChange
+              contact: this.props.newContact, onChange: this.props.onNewContactChange, onSubmit: this.props.onNewContactSubmit
             })
           )
         )
       }
     })
 
+    //initial call to get started
     setState({
       contacts: [
         { key: 1, name: "James K Nelson", email: "james@jamesknelson.com", description: "Front-end Unicorn" },
         { key: 2, name: "Jim", email: "jim@example.com" },
         { key: 3, name: "Joe" },
       ],
-      newContact: { name: '', email: '', description: '' }
+      newContact: NEW_CONTACT_TEMPLATE
     })
   </script>
 </body>
