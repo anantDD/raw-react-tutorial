@@ -160,6 +160,7 @@
       onSubmit: function (e) {
         e.preventDefault();
         this.props.onSubmit();
+        this.refs.name.focus();
       },
       render: function () {
         var errors = this.props.contact.errors || {};
